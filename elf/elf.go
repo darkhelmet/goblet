@@ -3,7 +3,6 @@ package elf
 import (
     "debug/elf"
     "errors"
-    "github.com/darkhelmet/goblet"
 )
 
 func HasSection(path string) bool {
@@ -13,7 +12,7 @@ func HasSection(path string) bool {
     }
     defer file.Close()
 
-    return file.Section(goblet.SectionName) != nil
+    return file.Section("goblet") != nil
 }
 
 func ExtractSection(path string) ([]byte, error) {
@@ -23,7 +22,7 @@ func ExtractSection(path string) ([]byte, error) {
     }
     defer file.Close()
 
-    section := file.Section(goblet.SectionName)
+    section := file.Section("goblet")
     if section == nil {
         return nil, errors.New("no goblet section found")
     }

@@ -3,18 +3,17 @@ package objcopy
 import (
     "flag"
     "fmt"
-    "github.com/darkhelmet/goblet"
     "os/exec"
 )
 
 var objcopy = flag.String("objcopy", "objcopy", "The path to objcopy")
 
 func RemoveGoblet(input string) error {
-    cmd := exec.Command(*objcopy, "--remove-section", goblet.SectionName, input)
+    cmd := exec.Command(*objcopy, "--remove-section", "goblet", input)
     return cmd.Run()
 }
 
 func Gobletize(input, archive string) error {
-    cmd := exec.Command(*objcopy, "--add-section", fmt.Sprintf("%s=%s", goblet.SectionName, archive), input)
+    cmd := exec.Command(*objcopy, "--add-section", fmt.Sprintf("%s=%s", "goblet", archive), input)
     return cmd.Run()
 }
