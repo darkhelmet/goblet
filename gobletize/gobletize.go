@@ -15,9 +15,10 @@ import (
 )
 
 var (
-    input     = flag.String("input", "", "The input file to use")
-    extract   = flag.String("extract", "", "Extract the archive to the given file")
-    gobletize = flag.String("gobletize", "", "The directory to pack")
+    input       = flag.String("input", "", "The input file to use")
+    extract     = flag.String("extract", "", "Extract the archive to the given file")
+    gobletize   = flag.String("gobletize", "", "The directory to pack")
+    regobletize = flag.Bool("regobletize", false, "Overwrite the goblet in the input file")
 )
 
 func walker(base string, tw *tar.Writer) filepath.WalkFunc {
@@ -77,6 +78,13 @@ func archive(path string) string {
 }
 
 func Gobletize() {
+    if elf.HasSection(*input) {
+        if !*regobletize {
+            log.Fatalf("input has been gobletized already, and -regobletize was not provided")
+        }
+        objcopy.RemoveGoblet(*input)
+    }
+
     err := objcopy.Gobletize(*input, archive(*gobletize))
     if err != nil {
         log.Fatalf("gobletize failed: %s", err)

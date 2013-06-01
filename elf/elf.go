@@ -6,6 +6,16 @@ import (
     "github.com/darkhelmet/goblet"
 )
 
+func HasSection(path string) bool {
+    file, err := elf.Open(path)
+    if err != nil {
+        return false
+    }
+    defer file.Close()
+
+    return file.Section(goblet.SectionName) != nil
+}
+
 func ExtractSection(path string) ([]byte, error) {
     file, err := elf.Open(path)
     if err != nil {
