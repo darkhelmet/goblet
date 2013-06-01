@@ -2,21 +2,22 @@ package main
 
 import (
     "archive/tar"
+    "bytes"
     "flag"
     "fmt"
+    "github.com/darkhelmet/goblet/elf"
+    "github.com/darkhelmet/goblet/objcopy"
     "io"
     "io/ioutil"
     "log"
     "os"
-    "os/exec"
     "path/filepath"
 )
 
 var (
-    objcopy = flag.String("objcopy", "objcopy", "The path to objcopy")
-    input   = flag.String("input", "", "The input file to use")
-    dump    = flag.Bool("dump", false, "Dump contents of existing section to stdout")
-    dir     = flag.String("dir", "", "The directory to pack")
+    input     = flag.String("input", "", "The input file to use")
+    extract   = flag.String("extract", "", "Extract the archive to the given file")
+    gobletize = flag.String("gobletize", "", "The directory to pack")
 )
 
 func walker(base string, tw *tar.Writer) filepath.WalkFunc {
@@ -75,6 +76,31 @@ func archive(path string) string {
     return arc.Name()
 }
 
+func Gobletize() {
+    err := objcopy.Gobletize(*input, archive(*gobletize))
+    if err != nil {
+        log.Fatalf("gobletize failed: %s", err)
+    }
+}
+
+func ExtractArchive() {
+    data, err := elf.ExtractSection(*input)
+    if err != nil {
+        log.Fatalf("failed extracting section from %s: %s", *input, err)
+    }
+
+    file, err := os.OpenFile(*extract, os.O_WRONLY|os.O_CREATE, 0644)
+    if err != nil {
+        log.Fatalf("failed to open %s for writing: %s", *extract, err)
+    }
+    defer file.Close()
+
+    _, err = io.Copy(file, bytes.NewReader(data))
+    if err != nil {
+        log.Fatalf("failed copy: %s", err)
+    }
+}
+
 func main() {
     flag.Parse()
 
@@ -82,13 +108,11 @@ func main() {
         log.Fatalf("no input file specified, use -input <path>")
     }
 
-    if *dir == "" {
-        log.Fatalf("no dir specified, use -dir <dir>")
-    }
-
-    assets := archive(*dir)
-    cmd := exec.Command(*objcopy, "--add-section", fmt.Sprintf("goblet=%s", assets), *input)
-    if err := cmd.Run(); err != nil {
-        log.Fatalf("objcopy failed: %s", err)
+    if *gobletize != "" {
+        Gobletize()
+    } else if *extract != "" {
+        ExtractArchive()
+    } else {
+        log.Fatalf("provided either -gobletize or -extract to gobletize or extract")
     }
 }
