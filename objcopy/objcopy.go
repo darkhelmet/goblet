@@ -14,6 +14,6 @@ func RemoveGoblet(input string) error {
 }
 
 func Gobletize(input, archive string) error {
-    cmd := exec.Command(*objcopy, "--add-section", fmt.Sprintf("%s=%s", "goblet", archive), input)
+    cmd := exec.Command(*objcopy, "--add-section", fmt.Sprintf("goblet=%s", archive), input)
     return cmd.Run()
 }

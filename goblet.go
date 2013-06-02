@@ -2,34 +2,51 @@ package goblet
 
 import (
     "archive/tar"
+    "bitbucket.org/kardianos/osext"
     "bytes"
+    "crypto/sha1"
     "fmt"
     "github.com/darkhelmet/goblet/elf"
     "io"
-    "os"
+    "time"
 )
 
-type Goblet struct {
-    Files map[string][]byte
+type Asset struct {
+    Name         string
+    Data         []byte
+    LastModified time.Time
+    Sha1         string
 }
 
-func (g *Goblet) Get(name string) []byte {
+func (a *Asset) Size() int {
+    return len(a.Data)
+}
+
+func (a *Asset) Reader() *bytes.Reader {
+    return bytes.NewReader(a.Data)
+}
+
+type Goblet struct {
+    Files map[string]*Asset
+}
+
+func (g *Goblet) Get(name string) *Asset {
     return g.Files[name]
 }
 
-func (g *Goblet) GetReader(name string) io.Reader {
-    return bytes.NewReader(g.Get(name))
-}
-
 func Load() (*Goblet, error) {
-    data, err := elf.ExtractSection(os.Args[0])
+    binary, err := osext.Executable()
     if err != nil {
         return nil, err
     }
 
-    var buffer bytes.Buffer
+    data, err := elf.ExtractSection(binary)
+    if err != nil {
+        return nil, err
+    }
+
     r := tar.NewReader(bytes.NewReader(data))
-    files := make(map[string][]byte)
+    files := make(map[string]*Asset)
     for {
         hdr, err := r.Next()
         if err != nil {
@@ -38,13 +55,19 @@ func Load() (*Goblet, error) {
             }
             return nil, fmt.Errorf("failed to get next entry: %s", err)
         }
-        buffer.Reset()
-        _, err = io.Copy(&buffer, r)
+
+        buffer := make([]byte, hdr.Size)
+        _, err = io.ReadFull(r, buffer)
         if err != nil {
             return nil, fmt.Errorf("failed reading from archive %s: %s", hdr.Name, err)
         }
 
-        files[hdr.Name] = buffer.Bytes()
+        files[hdr.Name] = &Asset{
+            Name:         hdr.Name,
+            Data:         buffer,
+            LastModified: hdr.ModTime,
+            Sha1:         fmt.Sprintf("%x", sha1.New().Sum(buffer)),
+        }
     }
 
     return &Goblet{files}, nil
