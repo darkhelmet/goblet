@@ -11,6 +11,14 @@ type Handler struct {
     paths  map[string]*G.Asset
 }
 
+func LoadHandlerWithFallback(prefix, fallbackDirectory string) http.Handler {
+    g, err := G.Load()
+    if err != nil {
+        return http.FileServer(http.Dir(fallbackDirectory))
+    }
+    return NewHandler(prefix, g)
+}
+
 func NewHandler(prefix string, g *G.Goblet) http.Handler {
     paths := make(map[string]*G.Asset)
     for name, asset := range g.Files {
