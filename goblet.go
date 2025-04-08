@@ -66,7 +66,7 @@ func Load() (*Goblet, error) {
             Name:         hdr.Name,
             Data:         buffer,
             LastModified: hdr.ModTime,
-            Sha1:         fmt.Sprintf("%x", sha1.New().Sum(buffer)),
+            Sha1:         fmt.Sprintf("%x", sha1.Sum(buffer)),
         }
     }
 
